@@ -22,8 +22,10 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#ifndef __FreeBSD__
 #include <linux/types.h>
 #include <malloc.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -412,7 +414,18 @@ int64 OsLayer::FindFreeMemSize() {
     return totalmemsize_;
 
   int64 pages = sysconf(_SC_PHYS_PAGES);
+#ifdef __FreeBSD__
+  int64 avpages;
+  int32 avpages_;
+  size_t sz = sizeof(avpages_);
+  int rc;
+  rc = sysctlbyname("vm.stats.vm.v_free_count", &avpages_, &sz, NULL, 0);
+  if (rc != 0 || sz != sizeof(avpages_))
+	  abort();
+  avpages = avpages_;
+#else
   int64 avpages = sysconf(_SC_AVPHYS_PAGES);
+#endif
   int64 pagesize = sysconf(_SC_PAGESIZE);
   int64 physsize = pages * pagesize;
   int64 avphyssize = avpages * pagesize;

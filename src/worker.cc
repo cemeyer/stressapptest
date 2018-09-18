@@ -27,6 +27,12 @@
 #include <unistd.h>
 
 #include <sys/select.h>
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/mount.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/times.h>
@@ -38,11 +44,15 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#ifndef __FreeBSD__
 #include <linux/unistd.h>  // for gettid
+#endif
 
 // For size of block device
 #include <sys/ioctl.h>
+#ifndef __FreeBSD__
 #include <linux/fs.h>
+#endif
 // For asynchronous I/O
 #ifdef HAVE_LIBAIO_H
 #include <libaio.h>
@@ -2760,11 +2770,19 @@ bool DiskThread::GetDiskSize(int fd) {
   if (S_ISBLK(device_stat.st_mode)) {
     uint64 block_size = 0;
 
+#ifndef __FreeBSD__
     if (ioctl(fd, BLKGETSIZE64, &block_size) == -1) {
+#else
+    struct statfs sfbuf;
+    if (fstatfs(fd, &sfbuf) == -1) {
+#endif
       logprintf(0, "Process Error: Unable to ioctl disk %s (thread %d).\n",
                 device_name_.c_str(), thread_num_);
       return false;
     }
+#ifdef __FreeBSD__
+    block_size = sfbuf.f_blocks * sfbuf.f_bsize;
+#endif
 
     // Zero size indicates nonworking device..
     if (block_size == 0) {

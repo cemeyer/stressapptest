@@ -48,6 +48,10 @@
 #include "sattypes.h"
 #include "worker.h"
 
+#ifdef __FreeBSD__
+#define sighandler_t sig_t
+#endif
+
 // stressapptest versioning here.
 #ifndef PACKAGE_VERSION
 static const char* kVersion = "1.0.0";
@@ -1485,6 +1489,7 @@ int Sat::CpuCount() {
 // Return the worst case (largest) cache line size of the various levels of
 // cache actually prsent in the machine.
 int Sat::CacheLineSize() {
+#ifndef __FreeBSD__
   int max_linesize = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
   int linesize = sysconf(_SC_LEVEL2_CACHE_LINESIZE);
   if (linesize > max_linesize) max_linesize = linesize;
@@ -1493,6 +1498,9 @@ int Sat::CacheLineSize() {
   linesize = sysconf(_SC_LEVEL4_CACHE_LINESIZE);
   if (linesize > max_linesize) max_linesize = linesize;
   return max_linesize;
+#else
+  return 64;
+#endif
 }
 
 // Notify and reap worker threads.

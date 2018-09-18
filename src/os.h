@@ -31,6 +31,29 @@
 #include "sattypes.h"       // NOLINT
 #include "clock.h"          // NOLINT
 
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+
+#include <stdlib.h>
+
+#define MAP_POPULATE 0
+#define MAP_NORESERVE 0
+#define MAP_LOCKED 0
+#define mmap64 mmap
+#define lseek64 lseek
+#define memalign aligned_alloc
+#define O_LARGEFILE 0
+
+/* appears only used for diagnostic prints */
+static inline int
+sched_getcpu(void)
+{
+	return 0;
+}
+#endif
+
 const char kPagemapPath[] = "/proc/self/pagemap";
 
 struct PCIDevice {
